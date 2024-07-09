@@ -38,10 +38,6 @@ def fs_exists_in_curdir(path, fs_type):
     param = None
     if fs_type == "Squash":
         param = "squashfs-root"
-    elif fs_type == "Initram":
-        param = "initram"
-    elif fs_type == "JFFS2":
-        param = "jffs2"
     elif fs_type == "Unknown":
         # Just using cpio for now, could be anything
         param = 'cpio-root'
@@ -61,10 +57,6 @@ def fs_compressed_exists_in_curdir(path, fs_type):
     if fs_type == "Squash":
         suffix = ".squashfs"
         alt_suffix = ".sqfs"
-    elif fs_type == "Initram":
-        suffix = ".initram"
-    elif fs_type == "JFFS2":
-        suffix = ".jffs2"
     elif fs_type == "Unknown":
         # Just using cpio for now, could be anything
         suffix=".cpio"
@@ -83,10 +75,6 @@ def mount_fs(path, fs_type, mount_dir):
     # Extract intial level
     if fs_type == "Squash":
         type = "squashfs"
-    elif fs_type == "JFFS2":
-        pass
-    elif fs_type == "Initram":
-        pass
     elif fs_type == "Unknown":
         # Just using cpio for now, could be anything
         type = "cpio"
