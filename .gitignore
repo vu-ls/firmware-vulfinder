@@ -1,5 +1,7 @@
 __pycache__/
 .Python
+.DS_STORE
+DS_STORE
 
 .env
 .venv
