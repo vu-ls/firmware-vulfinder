@@ -1,1 +1,1 @@
-mount_dir = "/home/jacob/firmware_analysis/extracted/mountpoint"
+mount_dir = "/home/jacob/firmware-analysis/extracted/mountpoint"
