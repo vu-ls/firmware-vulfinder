@@ -16,7 +16,7 @@ class Image(ABC):
 
     # Extract file system of any type using extractor
     def extractFS(self):
-        return extract_filesystem(self, "/home/jacob/firmware_analysis/extracted")
+        return extract_filesystem(self, "/home/jacob/firmware-analysis/extracted")
     def is_mounted(self):
         return self.mounted
     def printFS(self):
