@@ -94,3 +94,9 @@ def clean_dir(directory):
         shutil.rmtree(directory)
     
     os.makedirs(directory)
+
+def print_filesystem(path):
+    dir_arr = []
+    for root, subdirs, files in os.walk(path):
+        dir_arr.append(subdirs)
+    return dir_arr

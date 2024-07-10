@@ -77,12 +77,6 @@ def extract_filesystem(Image, final_dir):
     # If extraction did not work, return the final directory
     return final_dir
 
-def print_filesystem(path):
-    dir_arr = []
-    for root, subdirs, files in os.walk(path):
-        dir_arr.append(subdirs)
-    return dir_arr
-
 def find_kernel_version(path):
     # versions = []
     # for root, subdirs, files in os.walk(path):

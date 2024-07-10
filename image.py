@@ -1,9 +1,10 @@
 from abc import ABC
 import os
-from extraction.extractor import extract_filesystem, print_filesystem, find_kernel_version
+from extraction.extractor import extract_filesystem, find_kernel_version
 from constants import mount_dir
 from extraction.squashfs import SquashImage
 from extraction.unknown import UnknownImage
+from extraction.utils import print_filesystem
 
 # Abstract Image class
 class Image(ABC):

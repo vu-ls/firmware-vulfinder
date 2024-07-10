@@ -81,8 +81,6 @@ class FileUploadGUI:
             return
         try:
             extracted_dir = self.image.extractFS()
-            # Run a check to see if fs mounted, sets mounted flag on image
-            self.image.is_mounted()
             self.text_box.insert(tk.END, f"Extracted Directory: {extracted_dir}\n")
             if self.image.mounted:
                 self.text_box.insert(tk.END, f"Succesfully mounted {self.image.fs_type} file system!")
