@@ -1,12 +1,9 @@
 import os
 from extraction.utils import fs_exists_in_curdir, fs_compressed_exists_in_curdir, clean_dir
-from constants import mount_dir
-from image import Image
-from extraction.squashfs import SquashImage
-from extraction.unknown import UnknownImage
+from constants import mount_dir, types
 
 # Algorithm to recursively extract the file system
-def extract_filesystem(Image: Image, final_dir):
+def extract_filesystem(Image, final_dir):
     img_path = Image.path
     fs_type = Image.fs_type
     # Remove existing files and unmount the directory
@@ -44,9 +41,9 @@ def extract_filesystem(Image: Image, final_dir):
         print(f"Filesystem {fs_type} found (compressed) in {working_dir}")
         # A .squashfs or .sqfs file exists in the working_dir directory
         # Try to unsquash it first, then try to mount if unsquash fails
-        if type(Image) is SquashImage:
+        if fs_type == types.SQUASH:
             mounted_dir = Image.unsquashFS(working_dir, mount_dir)
-        if type(Image) is UnknownImage or mounted_dir is None:
+        if fs_type == types.UNKNOWN or mounted_dir is None:
             mounted_dir = Image.mount_fs(working_dir, fs_type, mount_dir)
         if mounted_dir is not None:
             return mounted_dir
@@ -56,5 +53,3 @@ def extract_filesystem(Image: Image, final_dir):
 
     # If extraction did not work, return the final directory
     return final_dir
-
-    

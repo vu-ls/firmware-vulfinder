@@ -56,11 +56,10 @@ class FileUploadGUI:
             self.find_type_button.config(state=tk.NORMAL)
             self.extract_fs_button.config(state=tk.DISABLED)
             self.print_fs_button.config(state=tk.DISABLED)
-            self.print_kernel_version_button.config(state=tk.DISABLED)
+            # self.print_kernel_version_button.config(state=tk.DISABLED)
 
     def filesystem_type(self):
         if not self.file_path:
-            messagebox.showerror("Error", "No file selected!")
             return
 
         # Clear text box
@@ -76,7 +75,6 @@ class FileUploadGUI:
 
     def extract_filesystem(self):
         if not self.image:
-            messagebox.showerror("Error", "No filesystem type identified!")
             return
         try:
             extracted_dir = self.image.extractFS()
@@ -84,13 +82,12 @@ class FileUploadGUI:
             if self.image.mounted:
                 self.text_box.insert(tk.END, f"Succesfully mounted {self.image.fs_type} file system!")
                 self.print_fs_button.config(state=tk.NORMAL)
-                self.print_kernel_version_button.config(state=tk.NORMAL)
+                # self.print_kernel_version_button.config(state=tk.NORMAL)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to extract filesystem:\n{e}")
 
     def print_filesystem(self):
         if not self.image.mounted:
-            messagebox.showerror("Error, file system has not been mounted!")
             return
         try:
             directories = self.image.printFS()

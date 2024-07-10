@@ -69,6 +69,18 @@ def fs_compressed_exists_in_curdir(path, fs_type):
 
     return False
 
+def move_root(image, curdir, mount_dir, name):
+    for root, subdirs, files in os.walk(curdir):
+        if name in subdirs:
+            src_dir = os.path.join(root, name)
+            shutil.move(src_dir, os.path.join(str(mount_dir), name))
+            print("mount_dir:", mount_dir)
+            if os.listdir(mount_dir):
+                print("Successfully mounted the squashfs!")
+                image.mounted = True
+                return mount_dir
+    return None
+
 # Mount a filesystem based on type
 def mount_fs(path, fs_type, mount_dir):
     type = None
