@@ -53,7 +53,7 @@ def fs_exists_in_curdir(path, fs_type):
 def fs_compressed_exists_in_curdir(path, fs_type):
     # Determine what to look for by file type
     suffix = None
-    alt_suffix = None
+    alt_suffix = ''
     if fs_type == "Squash":
         suffix = ".squashfs"
         alt_suffix = ".sqfs"

@@ -7,7 +7,8 @@ def extract_filesystem(Image, final_dir):
     img_path = Image.path
     fs_type = Image.fs_type
     # Remove existing files and unmount the directory
-    clean_dir(final_dir) and clean_dir(mount_dir)
+    clean_dir(final_dir)
+    clean_dir(mount_dir)
 
     # Working dir is something like "/firmware-analysis/extracted/firmware-image.bin/"
     working_dir = os.path.join(final_dir, os.path.basename(img_path))

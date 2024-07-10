@@ -1,6 +1,5 @@
 from abc import ABC
 import os
-import shutil
 import subprocess
 from constants import mount_dir
 from extraction.extractor import extract_filesystem
@@ -39,7 +38,7 @@ class SquashImage(Image):
 
     def extract_fs(self, path, edir):
         # Try to extract using binwalk
-        if run_binwalk_with_timeout(path, edir, 10):
+        if run_binwalk_with_timeout(path, edir, 300):
             return edir
 
         # If binwalk times out, use dd to extract the .squashfs file
@@ -91,7 +90,7 @@ class UnknownImage(Image):
         
     def extract_fs(self, path, edir):
         # Try to extract using binwalk
-        if run_binwalk_with_timeout(path, edir, 40):
+        if run_binwalk_with_timeout(path, edir, 300):
             return edir
         print("binwalk failed")
         # If binwalk times out, use dd to extract the file
