@@ -1,6 +1,6 @@
 from abc import ABC
 import os
-from extraction.extractor import extract_filesystem, find_kernel_version
+from extraction.extractor import extract_filesystem
 from constants import mount_dir
 from extraction.squashfs import SquashImage
 from extraction.unknown import UnknownImage
@@ -19,10 +19,17 @@ class Image(ABC):
         return extract_filesystem(self, "/home/jacob/firmware-analysis/extracted")
     def is_mounted(self):
         return self.mounted
-    def printFS(self):
+    def printFS():
         return print_filesystem(mount_dir)
-    def get_kernel_version(self):
-        return find_kernel_version(mount_dir)
+    def extract_fs(self, path, edir):
+        pass
+    def move_root(curdir, mount_dir):
+        pass
+    def mount_fs(path, fs_type, mount_dir):
+        pass
+
+    # def get_kernel_version(self):
+    #     return find_kernel_version(mount_dir)
     
 # Return concrete image based on file name
 # Implement additional logic to find type of image

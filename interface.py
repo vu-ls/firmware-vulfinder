@@ -34,9 +34,9 @@ class FileUploadGUI:
         self.print_fs_button.pack(pady=20)
 
         # Button to print kernel version
-        self.print_kernel_version_button = tk.Button(root, text="Print Kernel Version", 
-                                                     command=self.print_kernel_version, state=tk.DISABLED)
-        self.print_kernel_version_button.pack(pady=20)
+        # self.print_kernel_version_button = tk.Button(root, text="Print Kernel Version", 
+        #                                              command=self.print_kernel_version, state=tk.DISABLED)
+        # self.print_kernel_version_button.pack(pady=20)
 
         # Text box to display information
         self.text_box = tk.Text(root, wrap=tk.WORD, width=70, height=20)
@@ -69,8 +69,7 @@ class FileUploadGUI:
         try:
             # Create the correct Image object based on the file path
             self.image = create_image(self.file_path)
-            fs_type = self.image.fs_type
-            self.text_box.insert(tk.END, f"Detected File System Type: {fs_type}\n\n")
+            self.text_box.insert(tk.END, f"Detected File System Type: {self.image.fs_type}\n\n")
             self.extract_fs_button.config(state=tk.NORMAL)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to identify filesystem type:\n{e}")
@@ -100,17 +99,17 @@ class FileUploadGUI:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to print filesystem\n{e}")
 
-    def print_kernel_version(self):
-        if not self.image.mounted:
-            messagebox.showerror("Error, file system has not been mounted!")
-            return
-        try:
-            kernel_versions = self.image.get_kernel_version()
-            printable = ','.join(map(str, kernel_versions))
-            self.text_box.delete(1.0, tk.END)
-            self.text_box.insert(tk.END, f'Here is the kernel version of the filesystem: {printable}')
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to find a kernel version\n{e}")
+    # def print_kernel_version(self):
+    #     if not self.image.mounted:
+    #         messagebox.showerror("Error, file system has not been mounted!")
+    #         return
+    #     try:
+    #         kernel_versions = self.image.get_kernel_version()
+    #         printable = ','.join(map(str, kernel_versions))
+    #         self.text_box.delete(1.0, tk.END)
+    #         self.text_box.insert(tk.END, f'Here is the kernel version of the filesystem: {printable}')
+    #     except Exception as e:
+    #         messagebox.showerror("Error", f"Failed to find a kernel version\n{e}")
 
 
 if __name__ == "__main__":

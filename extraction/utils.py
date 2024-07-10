@@ -100,3 +100,14 @@ def print_filesystem(path):
     for root, subdirs, files in os.walk(path):
         dir_arr.append(subdirs)
     return dir_arr
+
+
+# def find_kernel_version(path):
+    # versions = []
+    # for root, subdirs, files in os.walk(path):
+    #     # Check if the current directory is /lib/modules
+    #     if os.path.basename(root) == "modules" and os.path.dirname(root).split("/")[-1] == "lib":
+    #         # Add all subdirectories (which should be kernel versions) to the versions list
+    #         versions.extend(subdirs)
+    #         break  # No need to go deeper once we find /lib/modules
+    # return versions

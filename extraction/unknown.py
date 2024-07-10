@@ -7,7 +7,7 @@ class UnknownImage(Image):
     def __init__(self, path):
         super().__init__(path, "Unknown", False, None)
         
-    def extract_unknown(path, edir):
+    def extract_fs(self, path, edir):
         # Try to extract using binwalk
         if run_binwalk_with_timeout(path, edir, 40):
             return edir
@@ -43,7 +43,7 @@ class UnknownImage(Image):
                     return mount_dir
         return None
 
-    def mount_unknownFS(self, path, fs_type, mount_dir):
+    def mount_fs(self, path, fs_type, mount_dir):
         mount_fs(path, fs_type, mount_dir)
         if os.listdir(path) is not None:
             self.mounted = True
