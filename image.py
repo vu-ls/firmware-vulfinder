@@ -1,123 +1,132 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 import os
 import subprocess
 from constants import mount_dir
-from extraction.extractor import extract_filesystem
-from extraction.utils import print_filesystem, run_binwalk_with_timeout, parse_binwalk_output, dd_extract, mount_fs, move_root
+from extractor import extract_filesystem
+from utils import *
 
-# Abstract Image class
 class Image(ABC):
-    def __init__(self, path, fs_type, mounted, kernel_version):
+    """Abstract Image class representing a firmware image."""
+    
+    def __init__(self, path, fs_type, mounted=False, kernel_version=None):
         self.path = path
         self.fs_type = fs_type
         self.mounted = mounted
         self.kernel_version = kernel_version
 
-    # Extract file system of any type using extractor
     def extractFS(self):
+        """Extracts the filesystem using the specified extractor."""
         return extract_filesystem(self, "/Users/jacobdavey/Analygence/firmware-analysis/extracted")
+
     def is_mounted(self):
         return self.mounted
+
     def printFS(self):
+        """Prints the filesystem contents."""
         return print_filesystem(mount_dir)
+
     def mount_fs(self, path, fs_type, mount_dir):
+        """Mounts the filesystem."""
         mount_fs(path, fs_type, mount_dir)
-        if os.listdir(mount_dir) is not None:
+        if os.listdir(mount_dir):
             self.mounted = True
+
+    @abstractmethod
     def move_root(self, curdir, mount_dir):
         pass
-    def extract_fs(self, path, edir):
+
+    @abstractmethod
+    def extract_fs(self, path, edir, find_kernel=False):
         pass
 
-    # def get_kernel_version(self):
-    #     return find_kernel_version(mount_dir)
+    def get_kernel_version(self):
+        """Gets the kernel version from the filesystem."""
+        if self.kernel_version is None:
+            set_kernel_version_from_lib(self, mount_dir)
+        return self.kernel_version
 
 class SquashImage(Image):
+    """Class representing a SquashFS firmware image."""
+    
     def __init__(self, path):
-        super().__init__(path, "Squash", False, None)
+        super().__init__(path, "Squash")
 
-    def extract_fs(self, path, edir):
-        # Try to extract using binwalk
-        if run_binwalk_with_timeout(path, edir, 300):
+    def extract_fs(self, path, edir, find_kernel=False):
+        """Extracts the SquashFS filesystem."""
+        if binwalk_extraction_with_timeout(self, path, edir, 300, find_kernel):
             return edir
 
-        # If binwalk times out, use dd to extract the .squashfs file
         offset, size = parse_binwalk_output(path, "Squashfs")
-        if offset is not None and size is not None:
+        if offset and size:
             output_file = os.path.join(edir, "extracted.squashfs")
             dd_extract(path, offset, size, output_file)
             return edir
-        
-        # Last place to look is for more compressed data, usually the file system is
-        # compressed into a lzma or xz file
-        else:
-            offset, size = parse_binwalk_output(path, "compressed data")
-            if offset is not None and size is not None:
-                data_file = os.path.join(edir, "extracted.lzma")
-                dd_extract(path, offset, size, data_file)
-                # Return the same directory we started in, since that is where the file will be
-                return edir
-            
+
+        offset, size = parse_binwalk_output(path, "compressed data")
+        if offset and size:
+            data_file = os.path.join(edir, "extracted.lzma")
+            dd_extract(path, offset, size, data_file)
+            return edir
+
         print(f"Extraction failed: could not find Squash filesystem in {path}")
         return None
 
+    @staticmethod
     def unsquashFS(curdir, mount_dir):
-        for root, subdirs, files in os.walk(curdir):
+        """Unsquashes a SquashFS filesystem."""
+        for root, _, files in os.walk(curdir):
             for f in files:
                 if f.endswith('.squashfs') or f.endswith('.sqfs'):
                     squashfs_path = os.path.join(root, f)
                     try:
-                        print('trying to unsquash')
                         unsquash_command = f"unsquashfs -d {mount_dir} {squashfs_path}"
                         subprocess.run(unsquash_command, shell=True, check=True)
-                        print('ran unsquash command')
                         if os.listdir(mount_dir):
-                            print("Successfully mounted the squashfs!")
+                            print("Successfully mounted the SquashFS!")
                             return mount_dir
                     except subprocess.CalledProcessError as err:
                         print(f"Failed to unsquash: {err}")
                         return None
 
-        print("Could not find squashfs-root or suitable squashfs file to mount.")
+        print("Could not find suitable SquashFS file to mount.")
         return None
-    
+
     def move_root(self, curdir, mount_dir):
-        move_root(self, curdir, mount_dir, "squashfs-root")
+        """Moves the SquashFS root."""
+        return move_root(self, curdir, mount_dir, "squashfs-root")
 
 class UnknownImage(Image):
+    """Class representing an unknown firmware image type."""
+    
     def __init__(self, path):
-        super().__init__(path, "Unknown", False, None)
-        
-    def extract_fs(self, path, edir):
-        # Try to extract using binwalk
-        if run_binwalk_with_timeout(path, edir, 300):
+        super().__init__(path, "Unknown")
+
+    def extract_fs(self, path, edir, find_kernel=False):
+        """Extracts an unknown filesystem type."""
+        if binwalk_extraction_with_timeout(self, path, edir, 300, find_kernel):
             return edir
-        print("binwalk failed")
-        # If binwalk times out, use dd to extract the file
+
         offset, size = parse_binwalk_output(path, "file system")
-        if offset is not None and size is not None:
+        if offset and size:
             unknown_file = os.path.join(edir, "extracted")
             dd_extract(path, offset, size, unknown_file)
             return edir
-        
-        # Last place to look is for more compressed data
-        else:
-            offset, size = parse_binwalk_output(path, "compressed data")
-            if offset is not None and size is not None:
-                data_file = os.path.join(edir, "extracted")
-                dd_extract(path, offset, size, data_file)
-                # Return the same directory we started in, since that is where the file will be
-                return edir
-            
+
+        offset, size = parse_binwalk_output(path, "compressed data")
+        if offset and size:
+            data_file = os.path.join(edir, "extracted")
+            dd_extract(path, offset, size, data_file)
+            return edir
+
         print(f"Extraction failed: could not find (unknown type) filesystem in {path}")
         return None
-    
-    def move_root(self, curdir, mount_dir):
-        move_root(self, curdir, mount_dir, "cpio-root")
 
-# Return concrete image based on file name
-# Implement additional logic to find type of image
+    def move_root(self, curdir, mount_dir):
+        """Moves the unknown root."""
+        return move_root(self, curdir, mount_dir, "cpio-root")
+
 def create_image(path):
+    """Creates an Image object based on the file name."""
     filename = os.path.basename(path).lower()
     if "squash" in filename:
         return SquashImage(path)
