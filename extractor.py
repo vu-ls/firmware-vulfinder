@@ -36,6 +36,11 @@ def extract_filesystem(image, final_dir):
         if not working_dir:
             raise Exception(f"Failed to extract data from {new_data}")
 
+    # Dynamically identify the filesystem type and re-declare the image object
+    identified_fs_type = identify_fs_type(working_dir)
+    if identified_fs_type != image.fs_type:
+        image = image.create_image_with_type(image.path, identified_fs_type)
+
     mounted_dir = None
     # Handle uncompressed file system
     if fs_exists_in_curdir(working_dir, fs_type):
@@ -47,10 +52,10 @@ def extract_filesystem(image, final_dir):
     # Handle compressed file system if not already mounted
     if fs_compressed_exists_in_curdir(working_dir, fs_type) and mounted_dir is None:
         print(f"Filesystem {fs_type} found (compressed) in {working_dir}")
-        print("mounted dir:", mounted_dir)
         if fs_type == types.SQUASH:
             mounted_dir = image.unsquashFS(working_dir, mount_dir)
         if fs_type == types.UNKNOWN or mounted_dir is None:
+            mounted_dir = image.decompressCPIO(working_dir, mount_dir)
             mounted_dir = image.mount_fs(working_dir, fs_type, mount_dir)
         if mounted_dir is not None:
             return mounted_dir

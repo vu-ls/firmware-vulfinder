@@ -52,42 +52,45 @@ def fs_exists_in_curdir(path, fs_type):
         param = "squashfs-root"
     elif fs_type == types.UNKNOWN:
         # Just using cpio for now, could be anything
-        param = 'cpio-root'
+        param = 'root'
 
-    # Try walking current extracted directory
     for root, subdirs, files in os.walk(path):
         if param in subdirs:
-            return True
-        
+            subdir_path = os.path.join(root, param)
+            if os.listdir(subdir_path):
+                return True
     return False
 
 def fs_compressed_exists_in_curdir(path, fs_type):
     # Determine what to look for by file type
     suffix = None
     alt_suffix = ''
+    alt_suffix2 = None
     if fs_type == types.SQUASH:
         suffix = ".squashfs"
         alt_suffix = ".sqfs"
     elif fs_type == types.UNKNOWN:
         # Just using cpio for now, could be anything
         suffix = ".cpio"
+        alt_suffix = ".squashfs"
+        alt_suffix2 = ".sqfs"
 
     # Try walking current extracted directory
     for root, subdirs, files in os.walk(path):
         for f in files:
-            if f.endswith(suffix) or f.endswith(alt_suffix):
+            if f.endswith(suffix) or f.endswith(alt_suffix) or (alt_suffix2 and f.endswith(alt_suffix2)):
                 return True
-
+            
     return False
 
 def move_root(image, curdir, mount_dir, name):
-    for root, subdirs, files in os.walk(curdir):
+    for root, subdirs, _ in os.walk(curdir):
         if name in subdirs:
             src_dir = os.path.join(root, name)
             shutil.move(src_dir, os.path.join(str(mount_dir), name))
             print("mount_dir:", mount_dir)
             if os.listdir(mount_dir):
-                print("Successfully mounted the squashfs!")
+                print(f"Successfully mounted the {name}!")
                 image.mounted = True
                 return mount_dir
     return None
@@ -126,3 +129,10 @@ def set_kernel_version_from_lib(image, path):
         # Check if the current directory is /lib/modules
         if os.path.basename(root) == "modules" and os.path.dirname(root).split("/")[-1] == "lib":
             image.kernel_version = subdirs
+
+def identify_fs_type(path):
+    """Identify the filesystem type based on the extracted directory."""
+    if fs_exists_in_curdir(path, types.SQUASH) or fs_compressed_exists_in_curdir(path, types.SQUASH):
+        return types.SQUASH
+    # Add more filesystem type checks if necessary
+    return types.UNKNOWN

@@ -46,7 +46,7 @@ class FileUploadGUI:
         self.text_box.pack(pady=10)
 
     def upload_file(self):
-        new_file = filedialog.askopenfilename(filetypes=[("Firmware files", "*.bin *.img")])
+        new_file = filedialog.askopenfilename()
         if new_file:
             self.file_path = new_file
             self.file_label.config(text=f"Selected File: {self.file_path}")
@@ -58,15 +58,14 @@ class FileUploadGUI:
     def filesystem_type(self):
         if not self.file_path:
             return
-
-        self.clear_text_box()
-
         try:
             self.image = create_image(self.file_path)
+            self.clear_text_box()
             self.text_box.insert(tk.END, f"Detected File System Type: {self.image.fs_type}\n\n")
             self.extract_fs_button.config(state=tk.NORMAL)
         except Exception as e:
             self.show_error("Failed to identify filesystem type", e)
+
 
     def extract_filesystem(self):
         if not self.image:
