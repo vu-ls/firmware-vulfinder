@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import os
 import subprocess
-from constants import mount_dir
+from constants import mount_dir, final_dir, types
 from extractor import extract_filesystem
 from utils import *
 
@@ -16,7 +16,7 @@ class Image(ABC):
 
     def extractFS(self):
         """Extracts the filesystem using the specified extractor."""
-        return extract_filesystem(self, "/Users/jacobdavey/Analygence/firmware-analysis/extracted")
+        return extract_filesystem(self, final_dir)
 
     def is_mounted(self):
         return self.mounted
@@ -31,7 +31,6 @@ class Image(ABC):
         if os.listdir(mountdir):
             self.mounted = True
 
-    @abstractmethod
     def move_root(self, curdir, mountdir):
         pass
 
@@ -46,25 +45,28 @@ class Image(ABC):
         return self.kernel_version
     
     # For dynamic recasting of Image objects based on filesystem type
-    def create_image_with_type(path, fs_type):
+    @staticmethod
+    def create_image_with_type(image, fs_type):
         """Creates an Image object based on the identified filesystem type."""
         if fs_type == types.SQUASH:
-            return SquashImage(path)
+            return SquashImage(image.path, image.mounted, image.kernel_version)
+        if fs_type == types.CPIO:
+            return CPIOImage(image.path, image.mounted, image.kernel_version)
         else:
-            return UnknownImage(path)
+            return UnknownImage(image.path)
 
 class SquashImage(Image):
     """Class representing a SquashFS firmware image."""
     
-    def __init__(self, path):
-        super().__init__(path, "Squash")
+    def __init__(self, path, mounted=False, kernel_version=None):
+        super().__init__(path, types.SQUASH, mounted, kernel_version)
 
     def extract_fs(self, path, edir, find_kernel=False):
         """Extracts the SquashFS filesystem."""
         if binwalk_extraction_with_timeout(self, path, edir, 300, find_kernel):
             return edir
 
-        offset, size = parse_binwalk_output(path, "Squashfs")
+        offset, size = parse_binwalk_output_for_fs(path, types.SQUASH)
         if offset and size:
             output_file = os.path.join(edir, "extracted.squashfs")
             dd_extract(path, offset, size, output_file)
@@ -79,8 +81,7 @@ class SquashImage(Image):
         print(f"Extraction failed: could not find Squash filesystem in {path}")
         return None
 
-    @staticmethod
-    def unsquashFS(curdir, mountdir):
+    def unsquashFS(self, curdir, mountdir):
         """Unsquashes a SquashFS filesystem."""
         for root, _, files in os.walk(curdir):
             for f in files:
@@ -90,6 +91,7 @@ class SquashImage(Image):
                         unsquash_command = f"unsquashfs -d {mountdir} {squashfs_path}"
                         subprocess.run(unsquash_command, shell=True, check=True)
                         if os.listdir(mountdir):
+                            self.mounted = True
                             print("Successfully mounted the SquashFS!")
                             return mountdir
                     except subprocess.CalledProcessError as err:
@@ -103,18 +105,68 @@ class SquashImage(Image):
         """Moves the SquashFS root."""
         return move_root(self, curdir, mountdir, "squashfs-root")
 
+class CPIOImage(Image):
+    """Class representing a CPIO firmware image."""
+    
+    def __init__(self, path, mounted=False, kernel_version=None):
+        super().__init__(path, types.CPIO, mounted, kernel_version)
+
+    def extract_fs(self, path, edir, find_kernel=False):
+        """Extracts the CPIO filesystem."""
+        if binwalk_extraction_with_timeout(self, path, edir, 300, find_kernel):
+            return edir
+
+        offset, size = parse_binwalk_output_for_fs(path, types.CPIO)
+        if offset and size:
+            output_file = os.path.join(edir, "extracted.cpio")
+            dd_extract(path, offset, size, output_file)
+            return edir
+
+        offset, size = parse_binwalk_output(path, "compressed data")
+        if offset and size:
+            data_file = os.path.join(edir, "extracted")
+            dd_extract(path, offset, size, data_file)
+            return edir
+
+        print(f"Extraction failed: could not find Squash filesystem in {path}")
+        return None
+
+    def decompressCPIO(self, curdir, mountdir):
+        """Decompresses a CPIO filesystem."""
+        for root, _, files in os.walk(curdir):
+            for f in files:
+                if f.endswith('.cpio'):
+                    cpio_path = os.path.join(root, f)
+                    try:
+                        cpio_command = f"tar -xvf {cpio_path} -C {mountdir}"
+                        subprocess.run(cpio_command, shell=True, check=True)
+                        if os.listdir(mountdir):
+                            self.mounted = True
+                            print("Successfully mounted the CPIO FS!")
+                            return mountdir
+                    except subprocess.CalledProcessError as err:
+                        print(f"Failed to unsquash: {err}")
+                        return None
+
+        print("Could not find suitable CPIO file to mount.")
+        return None
+
+    def move_root(self, curdir, mountdir):
+        """Moves the cpio root."""
+        return move_root(self, curdir, mountdir, "cpio-root")
+
 class UnknownImage(Image):
     """Class representing an unknown firmware image type."""
     
     def __init__(self, path):
-        super().__init__(path, "Unknown")
+        super().__init__(path, types.UNKNOWN)
 
     def extract_fs(self, path, edir, find_kernel=False):
         """Extracts an unknown filesystem type."""
         if binwalk_extraction_with_timeout(self, path, edir, 300, find_kernel):
             return edir
 
-        offset, size = parse_binwalk_output(path, "file system")
+        offset, size = parse_binwalk_output_for_fs(path, types.UNKNOWN)
         if offset and size:
             unknown_file = os.path.join(edir, "extracted")
             dd_extract(path, offset, size, unknown_file)
@@ -128,35 +180,13 @@ class UnknownImage(Image):
 
         print(f"Extraction failed: could not find (unknown type) filesystem in {path}")
         return None
-    
-    @staticmethod
-    def decompressCPIO(curdir, mountdir):
-        """Decompresses a CPIO filesystem."""
-        for root, _, files in os.walk(curdir):
-            for f in files:
-                if f.endswith('.cpio'):
-                    cpio_path = os.path.join(root, f)
-                    try:
-                        cpio_command = f"tar -xvf {cpio_path} -C {mountdir}"
-                        subprocess.run(cpio_command, shell=True, check=True)
-                        if os.listdir(mountdir):
-                            print("Successfully mounted the SquashFS!")
-                            return mountdir
-                    except subprocess.CalledProcessError as err:
-                        print(f"Failed to unsquash: {err}")
-                        return None
-
-        print("Could not find suitable SquashFS file to mount.")
-        return None
-    
-    def move_root(self, curdir, mountdir):
-        """Moves the unknown root."""
-        return move_root(self, curdir, mountdir, "cpio-root")
 
 def create_image(path):
     """Creates an Image object based on the file name."""
     filename = os.path.basename(path).lower()
     if "squash" in filename:
         return SquashImage(path)
+    elif "cpio" in filename:
+        return CPIOImage(path)
     else:
         return UnknownImage(path)

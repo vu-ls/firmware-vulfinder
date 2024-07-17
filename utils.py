@@ -8,7 +8,7 @@ def binwalk_extraction_with_timeout(image, path, edir, timeout, kernel_search=Fa
     cmd = f"binwalk --signature --matryoshka --extract --directory {edir} {path}"
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        stdout, stderr = process.communicate(timeout=timeout)
+        stdout, _ = process.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
         process.kill()
         return False
@@ -25,15 +25,46 @@ def binwalk_extraction_with_timeout(image, path, edir, timeout, kernel_search=Fa
                     image.kernel_version = kernel_version.group(1)
     return True
 
-def parse_binwalk_output(path, fs_type):
+def parse_binwalk_output_for_fs(path, fs_type):
     cmd = f"binwalk --run-as=root {path}"
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     output = result.stdout
 
-    fs_pattern = re.compile(fr'(\d+)\s+0x[0-9a-fA-F]+\s+{fs_type} filesystem.*?size:\s+(\d+)\s+bytes')
+    fs_pattern = None
+    fs_pattern1 = None
+
+    if fs_type == types.SQUASH:
+        fs_pattern1 = re.compile(fr'(\d+)\s+0x[0-9a-fA-F]+\s+Squashfs filesystem.*?size:\s+(\d+)\s+bytes')
+    elif fs_type == types.CPIO:
+        fs_pattern1 = re.compile(fr'(\d+)\s+0x[0-9a-fA-F]+\s+CPIO archive.*?size:\s+(\d+)\s+bytes')
+    elif fs_type == types.UNKNOWN:
+        fs_pattern = re.compile(fr'(\d+)\s+0x[0-9a-fA-F]+\s+Squashfs filesystem.*?size:\s+(\d+)\s+bytes')
+        fs_pattern1 = re.compile(fr'(\d+)\s+0x[0-9a-fA-F]+\s+CPIO archive.*?size:\s+(\d+)\s+bytes')
 
     for line in output.splitlines():
         match = fs_pattern.search(line)
+        if match:
+            offset = int(match.group(1))
+            size = int(match.group(2))
+            return offset, size
+        if fs_pattern1:
+            match = fs_pattern1.search(line)
+            if match:
+                offset = int(match.group(1))
+                size = int(match.group(2))
+                return offset, size
+
+    return None, None
+
+def parse_binwalk_output(path, search):
+    cmd = f"binwalk --run-as=root {path}"
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    output = result.stdout
+
+    pattern = re.compile(fr'(\d+)\s+0x[0-9a-fA-F]+\s+{search}.*?size:\s+(\d+)\s+bytes')
+
+    for line in output.splitlines():
+        match = pattern.search(line)
         if match:
             offset = int(match.group(1))
             size = int(match.group(2))
@@ -50,11 +81,10 @@ def fs_exists_in_curdir(path, fs_type):
     param = None
     if fs_type == types.SQUASH:
         param = "squashfs-root"
-    elif fs_type == types.UNKNOWN:
-        # Just using cpio for now, could be anything
-        param = 'root'
+    elif fs_type == types.CPIO:
+        param = 'cpio-root'
 
-    for root, subdirs, files in os.walk(path):
+    for root, subdirs, _ in os.walk(path):
         if param in subdirs:
             subdir_path = os.path.join(root, param)
             if os.listdir(subdir_path):
@@ -64,23 +94,18 @@ def fs_exists_in_curdir(path, fs_type):
 def fs_compressed_exists_in_curdir(path, fs_type):
     # Determine what to look for by file type
     suffix = None
-    alt_suffix = ''
-    alt_suffix2 = None
+    alt_suffix = None
     if fs_type == types.SQUASH:
         suffix = ".squashfs"
         alt_suffix = ".sqfs"
-    elif fs_type == types.UNKNOWN:
-        # Just using cpio for now, could be anything
+    elif fs_type == types.CPIO:
         suffix = ".cpio"
-        alt_suffix = ".squashfs"
-        alt_suffix2 = ".sqfs"
 
     # Try walking current extracted directory
-    for root, subdirs, files in os.walk(path):
+    for _, _, files in os.walk(path):
         for f in files:
-            if f.endswith(suffix) or f.endswith(alt_suffix) or (alt_suffix2 and f.endswith(alt_suffix2)):
+            if f.endswith(suffix) or (alt_suffix and f.endswith(alt_suffix)):
                 return True
-            
     return False
 
 def move_root(image, curdir, mount_dir, name):
@@ -100,7 +125,7 @@ def mount_fs(path, fs_type, mount_dir):
     # Extract initial level
     if fs_type == types.SQUASH:
         type = "squashfs"
-    elif fs_type == types.UNKNOWN:
+    elif fs_type == types.CPIO:
         # Just using cpio for now, could be anything
         type = "cpio"
 
@@ -120,12 +145,12 @@ def clean_dir(directory):
 
 def print_filesystem(path):
     dir_arr = []
-    for root, subdirs, files in os.walk(path):
+    for _, subdirs, _ in os.walk(path):
         dir_arr.append(subdirs)
     return dir_arr
 
 def set_kernel_version_from_lib(image, path):
-    for root, subdirs, files in os.walk(path):
+    for root, subdirs, _ in os.walk(path):
         # Check if the current directory is /lib/modules
         if os.path.basename(root) == "modules" and os.path.dirname(root).split("/")[-1] == "lib":
             image.kernel_version = subdirs
@@ -134,5 +159,7 @@ def identify_fs_type(path):
     """Identify the filesystem type based on the extracted directory."""
     if fs_exists_in_curdir(path, types.SQUASH) or fs_compressed_exists_in_curdir(path, types.SQUASH):
         return types.SQUASH
+    if fs_exists_in_curdir(path, types.CPIO) or fs_compressed_exists_in_curdir(path, types.CPIO):
+        return types.CPIO
     # Add more filesystem type checks if necessary
     return types.UNKNOWN
