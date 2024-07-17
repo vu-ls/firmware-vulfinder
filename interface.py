@@ -2,8 +2,6 @@ import os
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from image import create_image
-from utils import clean_dir, identify_fs_type
-from constants import final_dir, mount_dir, types
 
 class FileUploadGUI:
     def __init__(self, root):
@@ -65,8 +63,6 @@ class FileUploadGUI:
         try:
             if not self.image or self.image.path != self.file_path:
                 self.image = create_image(self.file_path)
-                if self.image.fs_type == "Unknown":
-                    self.find_image_type()
             self.clear_text_box()
             self.text_box.insert(tk.END, f"File System Type looks like: {self.image.fs_type}\n\n")
             if not self.image.mounted:
@@ -77,19 +73,6 @@ class FileUploadGUI:
                 self.print_kernel_version_button.config(state=tk.NORMAL)
         except Exception as e:
             self.show_error("Failed to identify filesystem type", e)
-
-    def find_image_type(self):
-        clean_dir(final_dir)
-        clean_dir(mount_dir)
-        working_dir = os.path.join(final_dir, os.path.basename(self.image.path))
-        os.makedirs(working_dir, exist_ok=True)
-        working_dir = self.image.extract_fs(self.image.path, final_dir)
-        # Identify file system type if not already known
-        fs_type = identify_fs_type(working_dir)
-        if fs_type != types.UNKNOWN:
-            self.image = self.image.create_image_with_type(self.image, fs_type)
-        else:
-            raise Exception(f"Failed to identify file system type in {working_dir}")
 
     def extract_filesystem(self):
         if not self.image:

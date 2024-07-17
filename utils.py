@@ -108,7 +108,11 @@ def fs_compressed_exists_in_curdir(path, fs_type):
                 return True
     return False
 
-def move_root(image, curdir, mount_dir, name):
+def move_root(image, curdir, mount_dir):
+    if image.fs_type == types.SQUASH:
+        name = "squashfs-root"
+    elif image.fs_type == types.CPIO:
+        name = "cpio-root"
     for root, subdirs, _ in os.walk(curdir):
         if name in subdirs:
             src_dir = os.path.join(root, name)

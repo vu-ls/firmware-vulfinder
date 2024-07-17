@@ -12,23 +12,22 @@ def extract_filesystem(image, final_dir):
 
     Returns:
         str: The directory where the file system is mounted, or the final directory if extraction fails.
-    """
-    img_path = image.path
-    fs_type = image.fs_type
-    
+    """        
     # Clean directories
     clean_dir(final_dir)
     clean_dir(mount_dir)
 
     # Set up working directory
-    working_dir = os.path.join(final_dir, os.path.basename(img_path))
+    working_dir = os.path.join(final_dir, os.path.basename(image.path))
     os.makedirs(working_dir, exist_ok=True)
-    
-    # Extract initial file system
-    working_dir = image.extract_fs(img_path, working_dir, True)
-    if not working_dir:
-        raise Exception(f"Failed to extract data from {img_path}")
 
+    # Extract initial file system
+    working_dir = image.extract_fs(image.path, working_dir, True)
+    if not working_dir:
+        raise Exception(f"Failed to extract data from {image.path}")
+
+    image.fs_type = identify_fs_type(working_dir)
+    fs_type = image.fs_type
     # Recursively extract until file system is found
     while not (fs_exists_in_curdir(working_dir, fs_type) or fs_compressed_exists_in_curdir(working_dir, fs_type)):
         new_data = working_dir
