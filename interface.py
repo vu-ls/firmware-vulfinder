@@ -1,4 +1,3 @@
-import os
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from image import create_image
@@ -95,7 +94,7 @@ class FileUploadGUI:
         try:
             directories = self.image.printFS()
             self.clear_text_box()
-            self.text_box.insert(tk.END, f'Here are the contents of the filesystem:\n{directories}\n')
+            self.text_box.insert(tk.END, f'Here are the contents of the {self.image.fs_type} filesystem:\n{directories}\n')
         except Exception as e:
             self.show_error("Failed to print filesystem", e)
 

@@ -16,9 +16,9 @@ def binwalk_extraction_with_timeout(image, path, edir, timeout, kernel_search=Fa
     if kernel_search:
         for line in stdout.splitlines():
             line = line.decode()
-            if "Kernel version" in line:
+            if "kernel version" in line:
                 print(f"Found kernel version line: {line}")
-                kernel_version = re.search(r'Kernel version\s*:\s*(.*)', line)
+                kernel_version = re.search(r'(?i)linux\s*kernel\s*version\s*:?([\d.]+)', line)
                 if kernel_version:
                     # Returns the group matched by the actual version number (.*)
                     print(f"Kernel version: {kernel_version.group(1)}")
