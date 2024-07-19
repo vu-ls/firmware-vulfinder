@@ -17,21 +17,23 @@ def extract_filesystem(image, final_dir):
     clean_dir(final_dir)
     clean_dir(mount_dir)
 
-    # Set up working directory
-    working_dir = os.path.join(final_dir, os.path.basename(image.path))
-    os.makedirs(working_dir, exist_ok=True)
+    counter = 0
 
-    # Extract initial file system
-    working_dir = image.extract_fs(image.path, working_dir, True)
-    if not working_dir:
+    # Extract initial file path to working directory
+    # Makes ./extracted/_img.bin.extracted/
+    working_dir = image.extract_fs(image.path, final_dir, True)
+    working_dir = os.path.join(final_dir, f"_{os.path.basename(image.path)}.extracted")
+    if not working_dir or not os.listdir(working_dir):
         raise Exception(f"Failed to extract data from {image.path}")
 
     image.fs_type = identify_fs_type(working_dir)
     fs_type = image.fs_type
+
     # Recursively extract until file system is found
-    while not (fs_exists_in_curdir(working_dir, fs_type) or fs_compressed_exists_in_curdir(working_dir, fs_type)):
-        new_data = working_dir
-        working_dir = image.extract_fs(new_data, working_dir, False)
+    while not (fs_exists_in_curdir(working_dir, fs_type) or fs_compressed_exists_in_curdir(working_dir, fs_type)) and counter < 5:
+        counter += 1
+        new_data = os.path.join(final_dir, "new") 
+        working_dir = image.extract_fs(working_dir, new_data, False)
         if not working_dir:
             raise Exception(f"Failed to extract data from {new_data}")
 
@@ -55,5 +57,5 @@ def extract_filesystem(image, final_dir):
         if mounted_dir is not None:
             return mounted_dir
 
-    print(f"Filesystem {fs_type} not found within recursion limit")
+    print(f"Filesystem {fs_type} not found within recursion limit (tried {counter} times)")
     return final_dir

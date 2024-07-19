@@ -23,23 +23,28 @@ class Image():
     
     def extract_fs(self, path, edir, find_kernel=False):
         """Extracts the filesystem."""
-        if binwalk_extraction_with_timeout(self, path, edir, 300, find_kernel):
+        if binwalk_extraction_with_timeout(self, path, edir, 300, find_kernel) != path and os.listdir(edir):
             return edir
+        else:
+            for _, _, files in os.walk(path):
+                for f in files:
+                    file_path = os.path.join(path, f)
+                    offset, size = parse_binwalk_output_for_fs(file_path, self.fs_type)
+                    if offset and size:
+                        output_file = os.path.join(edir, "extracted")
+                        dd_extract(file_path, offset, size, output_file)
+                        new_edir = os.path.join(edir, "extracted")
+                        return new_edir
 
-        offset, size = parse_binwalk_output_for_fs(path, self.fs_type)
-        if offset and size:
-            output_file = os.path.join(edir, "extracted")
-            dd_extract(path, offset, size, output_file)
-            return edir
+                    offset, size = parse_binwalk_output(file_path, "compressed data")
+                    if offset and size:
+                        data_file = os.path.join(edir, "extracted")
+                        dd_extract(file_path, offset, size, data_file)
+                        new_edir = os.path.join(edir, "extracted")
+                        return new_edir
 
-        offset, size = parse_binwalk_output(path, "compressed data")
-        if offset and size:
-            data_file = os.path.join(edir, "extracted")
-            dd_extract(path, offset, size, data_file)
-            return edir
-
-        print(f"Extraction failed: could not find filesystem in {path}")
-        return None
+            print(f"Extraction failed: could not find filesystem in {path}")
+            return None
     
     def mount_fs(self, path, fs_type, mountdir):
         """Mounts the filesystem."""
@@ -88,7 +93,7 @@ class Image():
                             print("Successfully mounted the CPIO FS!")
                             return mountdir
                     except subprocess.CalledProcessError as err:
-                        print(f"Failed to unsquash: {err}")
+                        print(f"Failed to decompress CPIO -- {err}")
                         return None
 
         print("Could not find suitable CPIO file to mount.")

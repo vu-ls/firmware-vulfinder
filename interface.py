@@ -54,7 +54,6 @@ class FileUploadGUI:
             self.extract_fs_button.config(state=tk.DISABLED)
             self.print_fs_button.config(state=tk.DISABLED)
             self.print_kernel_version_button.config(state=tk.DISABLED)
-            print('Uploaded file:', self.file_path)
 
     def filesystem_type(self):
         if not self.file_path:

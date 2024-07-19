@@ -11,7 +11,6 @@ def binwalk_extraction_with_timeout(image, path, edir, timeout, kernel_search=Fa
         stdout, _ = process.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
         process.kill()
-        return False
     # Check for kernel version if needed
     if kernel_search:
         for line in stdout.splitlines():
@@ -23,32 +22,30 @@ def binwalk_extraction_with_timeout(image, path, edir, timeout, kernel_search=Fa
                     # Returns the group matched by the actual version number (.*)
                     print(f"Kernel version: {kernel_version.group(1)}")
                     image.kernel_version = kernel_version.group(1)
-    return True
+    # Return the directory where the extraction was done
+    return edir
 
 def parse_binwalk_output_for_fs(path, fs_type):
-    cmd = f"binwalk --run-as=root {path}"
+    cmd = f"binwalk {path}"
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     output = result.stdout
-
     fs_pattern = None
     fs_pattern1 = None
+    fs_pattern2 = None
 
     if fs_type == types.SQUASH:
-        fs_pattern1 = re.compile(fr'(\d+)\s+0x[0-9a-fA-F]+\s+Squashfs filesystem.*?size:\s+(\d+)\s+bytes')
+        fs_pattern = re.compile(fr'(\d+)\s+0x[0-9a-fA-F]+\s+Squashfs filesystem.*?size:\s+(\d+)\s+bytes')
     elif fs_type == types.CPIO:
-        fs_pattern1 = re.compile(fr'(\d+)\s+0x[0-9a-fA-F]+\s+CPIO archive.*?size:\s+(\d+)\s+bytes')
+        fs_pattern = re.compile(fr'(\d+)\s+0x[0-9a-fA-F]+\s+CPIO archive.*?size:\s+(\d+)\s+bytes')
     elif fs_type == types.UNKNOWN:
         fs_pattern = re.compile(fr'(\d+)\s+0x[0-9a-fA-F]+\s+Squashfs filesystem.*?size:\s+(\d+)\s+bytes')
         fs_pattern1 = re.compile(fr'(\d+)\s+0x[0-9a-fA-F]+\s+CPIO archive.*?size:\s+(\d+)\s+bytes')
+        fs_pattern2 = re.compile(r'(\d+)\s+0x[0-9a-fA-F]+\s+TROC filesystem,\s+(\d+)\s+file entries')
 
+    patterns = [fs_pattern, fs_pattern1, fs_pattern2]
     for line in output.splitlines():
-        match = fs_pattern.search(line)
-        if match:
-            offset = int(match.group(1))
-            size = int(match.group(2))
-            return offset, size
-        if fs_pattern1:
-            match = fs_pattern1.search(line)
+        for pattern in patterns:
+            match = pattern.search(line)
             if match:
                 offset = int(match.group(1))
                 size = int(match.group(2))
@@ -57,7 +54,7 @@ def parse_binwalk_output_for_fs(path, fs_type):
     return None, None
 
 def parse_binwalk_output(path, search):
-    cmd = f"binwalk --run-as=root {path}"
+    cmd = f"binwalk {path}"
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     output = result.stdout
 
@@ -84,10 +81,14 @@ def fs_exists_in_curdir(path, fs_type):
     elif fs_type == types.CPIO:
         param = 'cpio-root'
 
+    if not param:
+        return False
+    # Try walking current extracted directory
     for root, subdirs, _ in os.walk(path):
         if param in subdirs:
             subdir_path = os.path.join(root, param)
             if os.listdir(subdir_path):
+                print(f"Found {fs_type} in {subdir_path}")
                 return True
     return False
 
@@ -101,6 +102,8 @@ def fs_compressed_exists_in_curdir(path, fs_type):
     elif fs_type == types.CPIO:
         suffix = ".cpio"
 
+    if not suffix:
+        return False
     # Try walking current extracted directory
     for _, _, files in os.walk(path):
         for f in files:
@@ -117,7 +120,6 @@ def move_root(image, curdir, mount_dir):
         if name in subdirs:
             src_dir = os.path.join(root, name)
             shutil.move(src_dir, os.path.join(str(mount_dir), name))
-            print("mount_dir:", mount_dir)
             if os.listdir(mount_dir):
                 print(f"Successfully mounted the {name}!")
                 image.mounted = True
@@ -130,7 +132,6 @@ def mount_fs(path, fs_type, mount_dir):
     if fs_type == types.SQUASH:
         type = "squashfs"
     elif fs_type == types.CPIO:
-        # Just using cpio for now, could be anything
         type = "cpio"
 
     cmd = f"sudo mount --type={type} --options='loop' --source={path} --target={mount_dir}"
