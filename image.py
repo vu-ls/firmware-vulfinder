@@ -24,6 +24,7 @@ class Image():
     def extract_fs(self, path, edir, find_kernel=False):
         """Extracts the filesystem."""
         if binwalk_extraction_with_timeout(self, path, edir, 300, find_kernel) != path and os.listdir(edir):
+            print("binwalk worked")
             return edir
         else:
         # If binwalk extraction fails, try to extract the filesystem manually

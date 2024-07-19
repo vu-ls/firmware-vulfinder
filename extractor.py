@@ -24,9 +24,9 @@ def extract_filesystem(image, mount_dir, final_dir):
     # Makes ./extracted/_img.bin.extracted/
     working_dir = image.extract_fs(image.path, final_dir, True)
     working_dir = os.path.join(final_dir, f"_{os.path.basename(image.path)}.extracted")
-    if not working_dir or not os.listdir(working_dir):
+    print(f"Extracted to {working_dir}")
+    if not working_dir or not os.path.isdir(working_dir):
         raise Exception(f"Failed to extract data from {image.path}")
-
     image.fs_type = identify_fs_type(working_dir)
     fs_type = image.fs_type
 

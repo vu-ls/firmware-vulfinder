@@ -143,7 +143,6 @@ def clean_dir(directory):
     # Remove existing contents in the mount directory and remake it
     unmount_cmd = f"sudo umount -fv {directory}"
     subprocess.run(unmount_cmd, shell=True, capture_output=True, text=True)
-    
     if os.path.exists(directory):
         shutil.rmtree(directory)
     
