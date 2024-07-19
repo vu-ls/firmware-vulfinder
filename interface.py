@@ -59,12 +59,14 @@ class FileUploadGUI:
         if not self.file_path:
             return
         try:
+            # If the image has not been created or the path has changed, create a new image
             if not self.image or self.image.path != self.file_path:
                 self.image = create_image(self.file_path)
             self.clear_text_box()
             self.text_box.insert(tk.END, f"File System Type looks like: {self.image.fs_type}\n\n")
             if not self.image.mounted:
                 self.extract_fs_button.config(state=tk.NORMAL)
+            # If the filesystem is already mounted, enable the print filesystem and kernel version buttons
             else:
                 self.extract_fs_button.config(state=tk.DISABLED)
                 self.print_fs_button.config(state=tk.NORMAL)
@@ -89,6 +91,7 @@ class FileUploadGUI:
 
     def print_filesystem(self):
         if not self.image or not self.image.mounted:
+            self.show_error("Filesystem not mounted", "Error: File system has not been mounted!")
             return
         try:
             directories = self.image.printFS()
