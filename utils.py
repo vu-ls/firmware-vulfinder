@@ -22,6 +22,7 @@ def binwalk_extraction_with_timeout(image, path, edir, timeout, kernel_search=Fa
                     # Returns the group matched by the actual version number (.*)
                     print(f"Kernel version: {kernel_version.group(1)}")
                     image.kernel_version = kernel_version.group(1)
+            
     # Return the directory where the extraction was done
     return edir
 

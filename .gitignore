@@ -7,3 +7,5 @@ DS_STORE
 .venv
 env/
 venv/
+
+config.py

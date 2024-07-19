@@ -1,8 +1,8 @@
 import os
 from utils import *
-from constants import mount_dir, types
+from constants import types
 
-def extract_filesystem(image, final_dir):
+def extract_filesystem(image, mount_dir, final_dir):
     """
     Recursively extracts the file system from a firmware image.
 

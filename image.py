@@ -1,6 +1,6 @@
 import os
 import subprocess
-from constants import mount_dir, final_dir
+from config import mount_dir, final_dir
 from extractor import extract_filesystem
 from utils import *
 
@@ -15,7 +15,7 @@ class Image():
 
     def extractFS(self):
         """Extracts the filesystem using the specified extractor."""
-        return extract_filesystem(self, final_dir)
+        return extract_filesystem(self, mount_dir, final_dir)
 
     def printFS(self):
         """Prints the filesystem contents."""
