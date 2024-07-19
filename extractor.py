@@ -17,6 +17,7 @@ def extract_filesystem(image, final_dir):
     clean_dir(final_dir)
     clean_dir(mount_dir)
 
+    # Counter to limit recursion
     counter = 0
 
     # Extract initial file path to working directory
@@ -29,7 +30,7 @@ def extract_filesystem(image, final_dir):
     image.fs_type = identify_fs_type(working_dir)
     fs_type = image.fs_type
 
-    # Recursively extract until file system is found
+    # Recursively extract until file system is found or limit is reached
     while not (fs_exists_in_curdir(working_dir, fs_type) or fs_compressed_exists_in_curdir(working_dir, fs_type)) and counter < 5:
         counter += 1
         new_data = os.path.join(final_dir, "new") 
@@ -45,7 +46,7 @@ def extract_filesystem(image, final_dir):
         if mounted_dir:
             return mounted_dir
 
-    # Handle compressed file system if not already mounted
+    # Handle compressed file system if it is not already mounted
     if fs_compressed_exists_in_curdir(working_dir, fs_type) and mounted_dir is None:
         print(f"Filesystem {fs_type} found (compressed) in {working_dir}")
         if fs_type == types.SQUASH:

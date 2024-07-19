@@ -26,19 +26,23 @@ class Image():
         if binwalk_extraction_with_timeout(self, path, edir, 300, find_kernel) != path and os.listdir(edir):
             return edir
         else:
+        # If binwalk extraction fails, try to extract the filesystem manually
             for _, _, files in os.walk(path):
                 for f in files:
                     file_path = os.path.join(path, f)
+                    # First check for a filesystem
                     offset, size = parse_binwalk_output_for_fs(file_path, self.fs_type)
                     if offset and size:
                         output_file = os.path.join(edir, "extracted")
+                        # Extract the filesystem
                         dd_extract(file_path, offset, size, output_file)
                         new_edir = os.path.join(edir, "extracted")
                         return new_edir
-
+                    # If no filesystem found, check for compressed data
                     offset, size = parse_binwalk_output(file_path, "compressed data")
                     if offset and size:
                         data_file = os.path.join(edir, "extracted")
+                        # Extract the compressed data
                         dd_extract(file_path, offset, size, data_file)
                         new_edir = os.path.join(edir, "extracted")
                         return new_edir
