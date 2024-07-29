@@ -34,7 +34,7 @@ def extract_filesystem(image, mount_dir, final_dir):
     while not (fs_exists_in_curdir(working_dir, fs_type) or fs_compressed_exists_in_curdir(working_dir, fs_type)) and counter < 5:
         counter += 1
         new_data = os.path.join(final_dir, "new") 
-        working_dir = image.extract_fs(working_dir, new_data, False)
+        working_dir = image.extract_fs(working_dir, new_data)
         if not working_dir:
             raise Exception(f"Failed to extract data from {new_data}")
 

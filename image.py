@@ -3,6 +3,7 @@ import subprocess
 from config import mount_dir, final_dir
 from extractor import extract_filesystem
 from utils import *
+from vulfinder import find_command_injection
 
 class Image():
     """Image class representing a firmware image."""
@@ -16,15 +17,10 @@ class Image():
     def extractFS(self):
         """Extracts the filesystem using the specified extractor."""
         return extract_filesystem(self, mount_dir, final_dir)
-
-    def printFS(self):
-        """Prints the filesystem contents."""
-        return print_filesystem(mount_dir)
     
     def extract_fs(self, path, edir, find_kernel=False):
         """Extracts the filesystem."""
         if binwalk_extraction_with_timeout(self, path, edir, 300, find_kernel) != path and os.listdir(edir):
-            print("binwalk worked")
             return edir
         else:
         # If binwalk extraction fails, try to extract the filesystem manually
@@ -50,23 +46,7 @@ class Image():
 
             print(f"Extraction failed: could not find filesystem in {path}")
             return None
-    
-    def mount_fs(self, path, fs_type, mountdir):
-        """Mounts the filesystem."""
-        mount_fs(path, fs_type, mountdir)
-        if os.listdir(mountdir):
-            self.mounted = True
-
-    def move_root(self, curdir, mountdir):
-        """Moves the root."""
-        return move_root(self, curdir, mountdir)
-
-    def get_kernel_version(self):
-        """Gets the kernel version from the filesystem."""
-        if self.kernel_version is None:
-            set_kernel_version_from_lib(self, mount_dir)
-        return self.kernel_version
-    
+        
     def unsquashFS(self, curdir, mountdir):
         """Unsquashes a SquashFS filesystem."""
         for root, _, files in os.walk(curdir):
@@ -103,6 +83,30 @@ class Image():
 
         print("Could not find suitable CPIO file to mount.")
         return None
+    
+    def mount_fs(self, path, fs_type, mountdir):
+        """Mounts the filesystem."""
+        mount_fs(path, fs_type, mountdir)
+        if os.listdir(mountdir):
+            self.mounted = True
+
+    def move_root(self, curdir, mountdir):
+        """Moves the root."""
+        return move_root(self, curdir, mountdir)
+
+    def printFS(self):
+        """Prints the filesystem contents."""
+        return print_filesystem(mount_dir)
+
+    def get_kernel_version(self):
+        """Gets the kernel version from the filesystem."""
+        if self.kernel_version is None:
+            set_kernel_version_from_lib(self, mount_dir)
+        return self.kernel_version
+    
+    def get_command_injections(self) -> list:
+        """Finds command injection vulnerabilities in the filesystem."""
+        return find_command_injection(mount_dir)
     
 def create_image(path):
     """Creates an Image object based on the file name."""

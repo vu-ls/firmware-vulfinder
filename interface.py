@@ -7,7 +7,7 @@ class FileUploadGUI:
         # Root setup
         self.root = root
         self.root.title("Firmware Extractor Interface")
-        self.root.geometry("1600x800")
+        self.root.geometry("1710x1107")
 
         # Initialize instance variables
         self.file_path = None
@@ -41,8 +41,12 @@ class FileUploadGUI:
         self.print_kernel_version_button = tk.Button(self.root, text="Print Kernel Version", command=self.print_kernel_version, state=tk.DISABLED)
         self.print_kernel_version_button.pack(pady=20)
 
+        # Button to print command injections
+        self.print_injections_button = tk.Button(self.root, text="Find Command Injections", command=self.print_injections, state=tk.DISABLED)
+        self.print_injections_button.pack(pady=20)
+
         # Text box to display information
-        self.text_box = tk.Text(self.root, wrap=tk.WORD, width=70, height=20)
+        self.text_box = tk.Text(self.root, wrap=tk.WORD, width=225, height=50)
         self.text_box.pack(pady=10)
 
     def upload_file(self):
@@ -54,6 +58,7 @@ class FileUploadGUI:
             self.extract_fs_button.config(state=tk.DISABLED)
             self.print_fs_button.config(state=tk.DISABLED)
             self.print_kernel_version_button.config(state=tk.DISABLED)
+            self.print_injections_button.config(state=tk.DISABLED)
 
     def filesystem_type(self):
         if not self.file_path:
@@ -71,6 +76,7 @@ class FileUploadGUI:
                 self.extract_fs_button.config(state=tk.DISABLED)
                 self.print_fs_button.config(state=tk.NORMAL)
                 self.print_kernel_version_button.config(state=tk.NORMAL)
+                self.print_injections_button.config(state=tk.NORMAL)
         except Exception as e:
             self.show_error("Failed to identify filesystem type", e)
 
@@ -85,6 +91,7 @@ class FileUploadGUI:
                 self.text_box.insert(tk.END, f"Successfully mounted {self.image.fs_type} file system!\n")
                 self.print_fs_button.config(state=tk.NORMAL)
                 self.print_kernel_version_button.config(state=tk.NORMAL)
+                self.print_injections_button.config(state=tk.NORMAL)
                 self.extract_fs_button.config(state=tk.DISABLED)
         except Exception as e:
             self.show_error("Failed to extract filesystem", e)
@@ -110,6 +117,17 @@ class FileUploadGUI:
             self.text_box.insert(tk.END, f'Here is the kernel version of the filesystem: {kernel}\n')
         except Exception as e:
             self.show_error("Failed to find a kernel version", e)
+
+    def print_injections(self):
+        if not self.image or not self.image.mounted:
+            self.show_error("Filesystem not mounted", "Error: File system has not been mounted!")
+            return
+        try:
+            injections = self.image.get_command_injections()
+            self.clear_text_box()
+            self.text_box.insert(tk.END, f'Here are the command injections found in the filesystem:\n{injections}\n')
+        except Exception as e:
+            self.show_error("Failed to find command injections", e)
 
     def clear_text_box(self):
         self.text_box.delete(1.0, tk.END)
