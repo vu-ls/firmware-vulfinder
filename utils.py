@@ -268,7 +268,9 @@ def set_kernel_version_from_lib(image, path) -> None:
     """
     for root, subdirs, _ in os.walk(path):
         if os.path.basename(root) == "modules" and os.path.dirname(root).split("/")[-1] == "lib":
-            image.kernel_version = subdirs
+            for subdir in subdirs:
+                if image.kernel_version is None or subdir > image.kernel_version:
+                    image.kernel_version = subdir
 
 def identify_fs_type(path) -> str:
     """

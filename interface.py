@@ -125,7 +125,7 @@ class FileUploadGUI:
         try:
             injections = self.image.get_command_injections()
             self.clear_text_box()
-            self.text_box.insert(tk.END, f'Here are the command injections found in the filesystem:\n{injections}\n')
+            self.text_box.insert(tk.END, f'Here are the command injection hints found in the filesystem:\n{injections}\n')
         except Exception as e:
             self.show_error("Failed to find command injections", e)
 
