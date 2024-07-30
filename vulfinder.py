@@ -55,7 +55,6 @@ def search_for_command_injections(file_path, injections):
         for pattern in injections:
             command = pattern['pattern']
             result = subprocess.run(['grep', '-E', '-n', command, file_path], stdout=subprocess.PIPE, text=True)
-            run_command = f"grep -E -n '{command}' {file_path}"
             if result.stdout:
                 print(result.stdout)
                 # Process the results from grep
