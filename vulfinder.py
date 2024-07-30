@@ -3,7 +3,7 @@ import re
 import subprocess
 
 # Define folders typically containing web content and patterns to search for potential injections
-webfolders = ["bin", "www", "cgi", "htdocs", "scripts", "includes", "config", "src", "lib", "public"]
+webfolders = ["bin", "www", "cgi", "htdocs", "scripts", "includes", "config", "src", "lib", "public", "etc"]
 
 exec_injections = [
     {
@@ -90,7 +90,7 @@ def is_executable_script(file_path):
     """Check if a file is an executable script."""
     try:
         result = subprocess.run(['file', file_path], stdout=subprocess.PIPE, text=True)
-        return 'script' in result.stdout.lower() and 'executable' in result.stdout.lower()
+        return 'script' in result.stdout.lower() or 'executable' in result.stdout.lower() or 'ELF' in result.stdout.lower()
     except Exception as e:
         print(f"Error checking file type: {file_path} - {e}")
         return False
