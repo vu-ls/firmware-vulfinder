@@ -21,7 +21,8 @@ def binwalk_extraction_with_timeout(image, path, edir, timeout, kernel_search=Fa
     cmd = f"binwalk --signature --matryoshka --extract --directory {edir} {path}"
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        stdout, _ = process.communicate(timeout=timeout)
+        stdout, stderr = process.communicate(timeout=timeout)
+        print(stderr.decode())
     except subprocess.TimeoutExpired:
         process.kill()
     if kernel_search:
@@ -48,7 +49,11 @@ def parse_binwalk_output_for_fs(path, fs_type) -> tuple:
     """
     cmd = f"binwalk {path}"
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    output = result.stdout
+    if result.stderr:
+        print(result.stderr, end='')
+    if result.stdout:
+        output = result.stdout
+
     fs_pattern = None
     fs_pattern1 = None
     fs_pattern2 = None
@@ -87,7 +92,10 @@ def parse_binwalk_output(path, search) -> tuple:
     """
     cmd = f"binwalk {path}"
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    output = result.stdout
+    if result.stderr:
+        print(result.stderr, end='')
+    if result.stdout:
+        output = result.stdout
 
     pattern = re.compile(fr'(\d+)\s+0x[0-9a-fA-F]+\s+{search}.*?size:\s+(\d+)\s+bytes')
 
@@ -111,7 +119,11 @@ def dd_extract(path, offset, size, output_file) -> None:
     output_file (str): The path to the output file.
     """
     dd_cmd = f"dd if={path} skip={offset} count={size} bs=1 of={output_file}"
-    subprocess.run(dd_cmd, shell=True, check=True)
+    result = subprocess.run(dd_cmd, shell=True, check=True)
+    if result.stderr:
+        print(result.stderr, end='')
+    if result.stdout:
+        print(result.stdout, end='')
 
 def fs_exists_in_curdir(path, fs_type) -> bool:
     """
