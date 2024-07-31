@@ -1,9 +1,8 @@
 import os
 import re
-import subprocess
 
 # Define folders typically containing web content and patterns to search for potential injections
-webfolders = ["bin", "www", "cgi", "htdocs", "scripts", "includes", "config", "src", "lib", "public", "etc"]
+webfolders = ["www", "cgi", "htdocs", "scripts", "includes", "config", "src", "public"]
 
 exec_injections = [
     {
@@ -51,27 +50,18 @@ def search_for_command_injections(file_path, injections):
     """Search for potential command injections in the file."""
     matches = []
     try:
-        # Search each pattern in the file
-        for pattern in injections:
-            command = pattern['pattern']
-            result = subprocess.run(['grep', '-E', '-n', command, file_path], stdout=subprocess.PIPE, text=True)
-            if result.stdout:
-                print(result.stdout)
-                # Process the results from grep
-                lines = result.stdout.strip().split('\n')
-                for line in lines:
-                    # Extract line number and matching line
-                    match = re.match(r'(\d+):(.*)', line)
-                    if match:
-                        line_number = match.group(1)
-                        line_content = match.group(2)
-                        # Format the matches for better readability
-                        if re.search(command, line_content):
-                            matches.append({
-                                'file': file_path,
-                                'line': line_number,
-                                'pattern': pattern['description'],
-                            })
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
+            content = file.read()
+            for pattern in injections:
+                command = pattern['pattern']
+                # Find all matches in the file content
+                for match in re.finditer(command, content):
+                    line_number = content.count('\n', 0, match.start()) + 1
+                    matches.append({
+                        'file': file_path,
+                        'line': line_number,
+                        'pattern': pattern['description'],
+                    })
     except Exception as e:
         print(f"Error searching file: {file_path} - {e}")
     return matches
@@ -79,8 +69,9 @@ def search_for_command_injections(file_path, injections):
 def is_python_script(file_path):
     """Check if a file is a Python script."""
     try:
-        result = subprocess.run(['file', file_path], stdout=subprocess.PIPE, text=True)
-        return 'python' in result.stdout.lower()
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
+            first_line = file.readline()
+            return first_line.startswith("#!") and "python" in first_line
     except Exception as e:
         print(f"Error checking file type: {file_path} - {e}")
         return False
@@ -88,28 +79,32 @@ def is_python_script(file_path):
 def is_executable_script(file_path):
     """Check if a file is an executable script."""
     try:
-        result = subprocess.run(['file', file_path], stdout=subprocess.PIPE, text=True)
-        return 'script' in result.stdout.lower() or 'executable' in result.stdout.lower() or 'ELF' in result.stdout.lower()
+        return os.access(file_path, os.X_OK)
     except Exception as e:
         print(f"Error checking file type: {file_path} - {e}")
         return False
+
 
 def find_command_injection(path) -> list:
     """Find and report potential command injections in web scripts."""
     results = []
     # Traverse the directory tree
-    for root, subdirs, files in os.walk(path):
-        for subdir in subdirs:
-            if subdir in webfolders:
-                dir_path = os.path.join(root, subdir) 
-                for file_name in files:
-                    file_path = os.path.join(root, file_name)
-                    if is_executable_script(file_path):
-                        matches = search_for_command_injections(file_path, exec_injections)
-                        if matches:
-                            results.extend(matches)
-                    if is_python_script(file_path):
-                        matches = search_for_command_injections(file_path, python_injections)
-                        if matches:
-                            results.extend(matches)
+    for root, _, files in os.walk(path):
+        # Determine the current level relative to the starting path
+        relative_root = os.path.relpath(root, path)
+        root_dirs = relative_root.split(os.sep)
+
+        # Check if we are at the top-level directory and if it is in webfolders
+        if len(root_dirs) == 1 and root_dirs[0] in webfolders:
+            for file in files:
+                file_path = os.path.join(root, file)
+                if is_executable_script(file_path):
+                    matches = search_for_command_injections(file_path, exec_injections)
+                    if matches:
+                        results.extend(matches)
+                elif is_python_script(file_path):
+                    matches = search_for_command_injections(file_path, python_injections)
+                    if matches:
+                        results.extend(matches)
+
     return results

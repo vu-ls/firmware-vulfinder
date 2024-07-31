@@ -149,7 +149,6 @@ def fs_exists_in_curdir(path, fs_type) -> bool:
         if param in subdirs:
             subdir_path = os.path.join(root, param)
             if os.listdir(subdir_path):
-                print(f"Found {fs_type} in {subdir_path}")
                 return True
     return False
 
@@ -197,14 +196,23 @@ def move_root(image, curdir, mount_dir) -> str:
         name = "squashfs-root"
     elif image.fs_type == types.CPIO:
         name = "cpio-root"
-    for root, subdirs, _ in os.walk(curdir):
-        if name in subdirs:
-            src_dir = os.path.join(root, name)
-            shutil.move(src_dir, os.path.join(str(mount_dir), name))
-            if os.listdir(mount_dir):
-                print(f"Successfully mounted the {name}!")
-                image.mounted = True
-                return mount_dir
+    src_dir = os.path.join(curdir, name)
+    if os.path.exists(src_dir) and os.path.isdir(src_dir):
+        for item in os.listdir(src_dir):
+            src_item = os.path.join(src_dir, item)
+            dst_item = os.path.join(mount_dir, item)
+            shutil.move(src_item, dst_item)
+
+        try:
+            os.rmdir(src_dir)
+        except OSError as e:
+            print(f"Error removing the old directory - {e}")
+
+        if os.listdir(mount_dir):
+            print(f"Successfully mounted the contents of {name}!")
+            image.mounted = True
+            return mount_dir
+
     return None
 
 def mount_fs(path, fs_type, mount_dir) -> str:
