@@ -14,8 +14,8 @@ cd firmware-analysis
 chmod +x build.sh
 ./build.sh
 ```
+You will be prompted to enter a file path for extracted files.
+
+Enter an absolute file path, like "/Users/jacob/firmware-extraction"
 ## Setup
-1) Create config.py file in the repo directory
-2) Set constants (found in config-template.py) to chosen directories
-   - final_dir must be one directory above mount_dir
-3) Run interface.py (with IDE or run `python interface.py` in terminal)
+Run interface.py (with IDE or enter `python interface.py` in terminal)
