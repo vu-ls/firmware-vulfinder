@@ -13,6 +13,7 @@ git clone https://github.com/jdavey-analygence/firmware-analysis.git
 cd firmware-analysis
 chmod +x build.sh
 ./build.sh
+python interface.py
 ```
 You will be prompted to enter a file path for extracted files.
 
