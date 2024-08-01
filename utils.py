@@ -21,18 +21,15 @@ def binwalk_extraction_with_timeout(image, path, edir, timeout, kernel_search=Fa
     cmd = f"binwalk --signature --matryoshka --extract --directory {edir} {path}"
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        stdout, stderr = process.communicate(timeout=timeout)
-        print(stderr.decode())
+        stdout, _ = process.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
         process.kill()
     if kernel_search:
         for line in stdout.splitlines():
             line = line.decode()
             if "kernel version" in line:
-                print(f"Found kernel version line: {line}")
                 kernel_version = re.search(r'(?i)linux\s*kernel\s*version\s*:?([\d.]+)', line)
                 if kernel_version:
-                    print(f"Kernel version: {kernel_version.group(1)}")
                     image.kernel_version = kernel_version.group(1)
     return edir
 
@@ -122,8 +119,6 @@ def dd_extract(path, offset, size, output_file) -> None:
     result = subprocess.run(dd_cmd, shell=True, check=True)
     if result.stderr:
         print(result.stderr, end='')
-    if result.stdout:
-        print(result.stdout, end='')
 
 def fs_exists_in_curdir(path, fs_type) -> bool:
     """
@@ -209,7 +204,6 @@ def move_root(image, curdir, mount_dir) -> str:
             print(f"Error removing the old directory - {e}")
 
         if os.listdir(mount_dir):
-            print(f"Successfully mounted the contents of {name}!")
             image.mounted = True
             return mount_dir
 
@@ -244,6 +238,7 @@ def clean_dir(directory) -> None:
     Args:
     directory (str): The directory to clean.
     """
+    print("Your password may be required to clean the mount directory.")
     unmount_cmd = f"sudo umount -fv {directory}"
     subprocess.run(unmount_cmd, shell=True, capture_output=True, text=True)
     if os.path.exists(directory):

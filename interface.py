@@ -82,13 +82,22 @@ class FileUploadGUI:
             self.show_error("Failed to identify filesystem type", e)
 
     def extract_filesystem(self):
+        self.clear_text_box()
+        self.text_box.insert(tk.END, "You may have to enter your password in the terminal.\n")
+        # Force update the UI to show the message immediately
+        self.root.update_idletasks()
+        
+        # Schedule the extraction to start after a short delay
+        self.root.after(100, self._perform_extraction)
+
+    def _perform_extraction(self):
         if not self.image:
             return
         try:
             extracted_dir = self.image.extractFS()
-            self.clear_text_box()
-            self.text_box.insert(tk.END, f"Extracted Directory: {extracted_dir}\n")
             if self.image.mounted:
+                self.clear_text_box()
+                self.text_box.insert(tk.END, f"Extracted Directory: {extracted_dir}\n")
                 self.text_box.insert(tk.END, f"Successfully mounted {self.image.fs_type} file system!\n")
                 self.print_fs_button.config(state=tk.NORMAL)
                 self.print_kernel_version_button.config(state=tk.NORMAL)
@@ -126,7 +135,7 @@ class FileUploadGUI:
         try:
             injections = self.image.get_command_injections()
             self.clear_text_box()
-            self.text_box.insert(tk.END, f'Here are the command injection hints found in the filesystem:\n{injections}\n')
+            self.text_box.insert(tk.END, f'Here are the command injection possibilities found in the filesystem:\n{injections}\n')
         except Exception as e:
             self.show_error("Failed to find command injections", e)
 

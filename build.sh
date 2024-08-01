@@ -10,6 +10,13 @@ function print_message() {
     echo "----------------------------------------"
 }
 
+function enter_directory() {
+    echo "----------------------------------------"
+    echo "Please enter the extraction directory path - must be an absolute path."
+    read -p "Enter the directory path: " DIRECTORY_PATH
+    echo "----------------------------------------"
+}
+
 print_message "Starting build process..."
 
 # Determine the operating system type
@@ -32,7 +39,6 @@ elif [ "$OS_TYPE" == "Mac" ]; then
     # Check if Homebrew is installed, install if not
     if ! command -v brew &> /dev/null; then
         print_message "Homebrew not found, install homebrew or manually install binwalk and squashfs with your selected package manager."
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
     # Install binwalk and squashfs
     brew install binwalk squashfs
@@ -48,13 +54,20 @@ fi
 # Create the config.py file in the current directory
 touch config.py
 
-print_message "Which directory would you like the extracted files to go?"
-read -p "Enter the directory path: " DIRECTORY_PATH
+# Initialize choice variable and enter the directory
+CHOICE=""
+enter_directory
 
-# Validate the directory path
-while [[ -z "$DIRECTORY_PATH" ]]; do
-    echo "Empty directory path. Please try again."
-    read -p "Enter the directory path: " DIRECTORY_PATH
+# Validate the directory path and confirm the choice
+while [[ -z "$DIRECTORY_PATH" || "$CHOICE" != "y" ]]; do
+    if [[ -n "$DIRECTORY_PATH" ]]; then
+        print_message "Are you sure you want to extract the files to $DIRECTORY_PATH? (y/n)"
+        read -p "Enter your choice: " CHOICE
+    fi
+
+    if [[ -z "$DIRECTORY_PATH" || "$CHOICE" != "y" ]]; then
+        enter_directory
+    fi
 done
 
 # Remove trailing slash from directory path if present

@@ -58,7 +58,6 @@ class Image():
                         subprocess.run(unsquash_command, shell=True, check=True)
                         if os.listdir(mountdir):
                             self.mounted = True
-                            print("Successfully mounted the SquashFS!")
                             return mountdir
                     except subprocess.CalledProcessError as err:
                         print(f"Failed to unsquash: {err}")
@@ -75,7 +74,6 @@ class Image():
                         subprocess.run(cpio_command, shell=True, check=True)
                         if os.listdir(mountdir):
                             self.mounted = True
-                            print("Successfully mounted the CPIO FS!")
                             return mountdir
                     except subprocess.CalledProcessError as err:
                         print(f"Failed to decompress CPIO -- {err}")

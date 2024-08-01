@@ -24,7 +24,6 @@ def extract_filesystem(image, mount_dir, final_dir):
     # Makes ./extracted/_img.bin.extracted/
     working_dir = image.extract_fs(image.path, final_dir, True)
     working_dir = os.path.join(final_dir, f"_{os.path.basename(image.path)}.extracted")
-    print(f"Extracted to {working_dir}")
     if not working_dir or not os.path.isdir(working_dir):
         raise Exception(f"Failed to extract data from {image.path}")
     image.fs_type = identify_fs_type(working_dir)
@@ -41,14 +40,12 @@ def extract_filesystem(image, mount_dir, final_dir):
     mounted_dir = None
     # Handle uncompressed file system
     if fs_exists_in_curdir(working_dir, fs_type):
-        print(f"Filesystem {fs_type} found (uncompressed) in {working_dir}")
         mounted_dir = image.move_root(working_dir, mount_dir)
         if mounted_dir:
             return mounted_dir
 
     # Handle compressed file system if it is not already mounted
     if fs_compressed_exists_in_curdir(working_dir, fs_type) and mounted_dir is None:
-        print(f"Filesystem {fs_type} found (compressed) in {working_dir}")
         if fs_type == types.SQUASH:
             mounted_dir = image.unsquashFS(working_dir, mount_dir)
         if fs_type == types.CPIO:
@@ -58,5 +55,4 @@ def extract_filesystem(image, mount_dir, final_dir):
         if mounted_dir is not None:
             return mounted_dir
 
-    print(f"Filesystem {fs_type} not found within recursion limit (tried {counter} times)")
     return final_dir
