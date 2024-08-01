@@ -7,7 +7,8 @@ class FileUploadGUI:
         # Root setup
         self.root = root
         self.root.title("Firmware Extractor Interface")
-        self.root.geometry("1710x1107")
+        # Set the window size
+        self.root.geometry("1500x1000")
 
         # Initialize instance variables
         self.file_path = None
@@ -46,7 +47,7 @@ class FileUploadGUI:
         self.print_injections_button.pack(pady=20)
 
         # Text box to display information
-        self.text_box = tk.Text(self.root, wrap=tk.WORD, width=225, height=50)
+        self.text_box = tk.Text(self.root, wrap=tk.WORD, width=150, height=35)
         self.text_box.pack(pady=10)
 
     def upload_file(self):

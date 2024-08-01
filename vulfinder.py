@@ -1,8 +1,10 @@
 import os
 import re
 
+### This tool is designed to find potential command injections in web scripts, and can be expanded on immensely ###
+
 # Define folders typically containing web content and patterns to search for potential injections
-webfolders = ["www", "cgi", "htdocs", "scripts", "includes", "config", "src", "public"]
+webfolders = ["www", "cgi", "htdocs", "scripts", "includes", "config", "src", "public", "bin"]
 
 exec_injections = [
     {

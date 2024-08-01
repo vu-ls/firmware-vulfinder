@@ -11,6 +11,7 @@ Beta version of firmware analysis tool. Uses binwalk and file decompression tool
 ```
 git clone https://github.com/jdavey-analygence/firmware-analysis.git
 cd firmware-analysis
+chmod +x build.sh
 ./build.sh
 ```
 ## Setup
