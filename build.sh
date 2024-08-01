@@ -51,6 +51,15 @@ touch config.py
 print_message "Which directory would you like the extracted files to go?"
 read -p "Enter the directory path: " DIRECTORY_PATH
 
+# Validate the directory path
+while [[ -z "$DIRECTORY_PATH" ]]; do
+    echo "Empty directory path. Please try again."
+    read -p "Enter the directory path: " DIRECTORY_PATH
+done
+
+# Remove trailing slash from directory path if present
+DIRECTORY_PATH=${DIRECTORY_PATH%/}
+
 # Create the directory if it doesn't exist
 mkdir -p $DIRECTORY_PATH
 mkdir -p $DIRECTORY_PATH/mountpoint
