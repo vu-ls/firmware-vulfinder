@@ -1,4 +1,4 @@
-# Filesystem Vulfinder
+# Firmware Vulfinder
 ## Description
 Beta version of firmware analysis tool. Uses binwalk and file decompression tools to extract squash-fs, CPIO-fs, and other filesystems. Preliminary capabilities:
 * Extracts filesystem from firmware image
